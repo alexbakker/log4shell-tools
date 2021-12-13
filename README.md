@@ -1,9 +1,27 @@
-# log4shell-tools
+# log4shell.tools
 
-This tool allows you to run a test to check whether one of your machines is
-affected by a vulnerability in log4j: CVE-2021-44228.
+__log4shell.tools__ is a tool allows you to run a test to check whether one of
+your applications is affected by a vulnerability in log4j: __CVE-2021-44228__.
 
-## Usage
+This is the code that runs https://log4shell.tools. If you'd like to inspect the
+code or run an instance in your own environment, you've come to the right
+place.
+
+## Installation
+
+The tool was tested on Go 1.16. Make sure it (or a more recent version) is
+installed and run the following command:
+
+```
+go install github.com/alexbakker/log4shell-tools/cmd/log4shell-tools-server
+```
+
+The binary will be available in ``$GOPATH/bin``
+
+### Usage
+
+The tool uses with the in-memory storage backend by default. If you need test
+results to persist across restarts, you may want to use the Postgres backend instead.
 
 ```
 Usage of log4shell-tools-server:
