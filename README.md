@@ -7,6 +7,8 @@ This is the code that runs https://log4shell.tools. If you'd like to inspect the
 code or run an instance in your own environment, you've come to the right
 place.
 
+<img width="750" src="https://alexbakker.me/u/r85ddqsfz5.png"/>
+
 ## Installation
 
 The tool was tested on Go 1.16. Make sure it (or a more recent version) is
