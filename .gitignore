@@ -1,0 +1,4 @@
+target/
+.tmp
+result
+cmd/log4shell-tools-server/log4shell-tools-server
