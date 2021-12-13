@@ -22,7 +22,7 @@ The binary will be available in ``$GOPATH/bin``
 
 ### Usage
 
-The tool uses with the in-memory storage backend by default. If you need test
+The tool uses its in-memory storage backend by default. If you need test
 results to persist across restarts, you may want to use the Postgres backend instead.
 
 ```
