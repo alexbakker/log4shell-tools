@@ -100,7 +100,8 @@ func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 		}
 
 		q := m.Question[0]
-		if strings.HasPrefix(q.Name, *flagDNSZone) {
+		if (q.Qtype != dns.TypeA && q.Qtype != dns.TypeAAAA) ||
+			strings.HasPrefix(q.Name, *flagDNSZone) {
 			w.WriteMsg(m)
 			return
 		}
