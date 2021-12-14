@@ -54,6 +54,7 @@ type IndexModel struct {
 	DNSEnabled       bool
 	DNSZone          string
 	ActiveTests      int64
+	Error            string
 }
 
 type StatsCache struct {
@@ -276,25 +277,29 @@ func handleIndex(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 			return
 		}
 		if model.Test == nil {
-			ctxLog.Info("Inserting new test")
+			if r.URL.Query().Get("terms") != "y" {
+				model.Error = "You cannot continue before agreeing to only testing on machines that you have permission to test on."
+			} else {
+				ctxLog.Info("Inserting new test")
 
-			if err := store.InsertTest(r.Context(), model.UUID); err != nil {
-				ctxLog.WithError(err).Error("Unable to insert new test")
-				writeHttpError(w, http.StatusInternalServerError)
-				return
-			}
-			if model.Test, err = store.Test(r.Context(), model.UUID); err != nil {
-				ctxLog.WithError(err).Error("Unable to lookup test in storage")
-				writeHttpError(w, http.StatusInternalServerError)
-				return
-			}
-			if model.Test == nil {
-				ctxLog.Error("Unable to obtain test right after insert")
-				writeHttpError(w, http.StatusInternalServerError)
-				return
-			}
+				if err := store.InsertTest(r.Context(), model.UUID); err != nil {
+					ctxLog.WithError(err).Error("Unable to insert new test")
+					writeHttpError(w, http.StatusInternalServerError)
+					return
+				}
+				if model.Test, err = store.Test(r.Context(), model.UUID); err != nil {
+					ctxLog.WithError(err).Error("Unable to lookup test in storage")
+					writeHttpError(w, http.StatusInternalServerError)
+					return
+				}
+				if model.Test == nil {
+					ctxLog.Error("Unable to obtain test right after insert")
+					writeHttpError(w, http.StatusInternalServerError)
+					return
+				}
 
-			counterTestsCreated.Inc()
+				counterTestsCreated.Inc()
+			}
 		}
 	} else {
 		model.New = true
