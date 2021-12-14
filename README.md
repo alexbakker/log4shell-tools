@@ -9,6 +9,22 @@ place.
 
 <img width="750" src="https://alexbakker.me/u/iq8qmxclfb.png"/>
 
+## How does this work?
+
+The tool generates a unique ID for you to test with. After you click start,
+we'll generate a piece of text for you that looks similar to this:
+__${jndi:ldap://\*.dns.log4shell.tools:12345/\*}__. Copy it and paste it anywhere
+you suspect it might end up getting passed through log4j. For example: search
+boxes, form fields or HTTP headers.
+
+Once an outdated version of log4j sees this string, it will perform a DNS lookup
+to get the IP address of __\*.dns.log4shell.tools__. If this happens, it is
+considered the first sign of vulnerability to information leakage. Next, it will
+attempt and LDAP search request to __log4shell.tools:12345__. The tool responds
+with a Java class description, along with a URL for where to obtain it. Log4j
+may even attempt to fetch the class file. The tool will return a 404 and
+conclude the test.
+
 ## Installation
 
 The tool was tested on Go 1.16. Make sure it (or a more recent version) is

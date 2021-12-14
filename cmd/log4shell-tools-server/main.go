@@ -50,6 +50,7 @@ type IndexModel struct {
 	UUID             uuid.UUID
 	Test             *storage.Test
 	Context          context.Context
+	AddrLDAP         string
 	AddrLDAPExternal string
 	DNSEnabled       bool
 	DNSZone          string
@@ -92,7 +93,17 @@ func init() {
 	}
 }
 
-func writeName(m *dns.Msg, r *dns.Msg, name string, recordType uint16, record string) {
+func writeName(m *dns.Msg, r *dns.Msg, name string, recordType uint16) {
+	var record string
+	switch recordType {
+	case dns.TypeA:
+		record = "138.201.187.203"
+	case dns.TypeAAAA:
+		record = "2a01:4f8:1c17:d3e2::1"
+	default:
+		panic("unsupported dns record type: " + dns.TypeToString[recordType])
+	}
+
 	rr, err := dns.NewRR(fmt.Sprintf("%s %s %s", name, dns.TypeToString[recordType], record))
 	if err == nil {
 		m.Answer = append(m.Answer, rr)
@@ -111,8 +122,14 @@ func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 		}
 
 		q := m.Question[0]
-		if (q.Qtype != dns.TypeA && q.Qtype != dns.TypeAAAA) ||
-			strings.HasPrefix(q.Name, *flagDNSZone) {
+		if q.Qtype != dns.TypeA && q.Qtype != dns.TypeAAAA {
+			w.WriteMsg(m)
+			m.SetRcode(r, dns.RcodeSuccess)
+			return
+		}
+
+		if strings.HasPrefix(strings.ToLower(q.Name), *flagDNSZone) {
+			writeName(m, r, q.Name, q.Qtype)
 			w.WriteMsg(m)
 			return
 		}
@@ -164,12 +181,7 @@ func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 			return
 		}
 
-		switch q.Qtype {
-		case dns.TypeA:
-			writeName(m, r, q.Name, q.Qtype, "138.201.187.203")
-		case dns.TypeAAAA:
-			writeName(m, r, q.Name, q.Qtype, "2a01:4f8:1c17:d3e2::1")
-		}
+		writeName(m, r, q.Name, q.Qtype)
 	}
 
 	w.WriteMsg(m)
@@ -250,6 +262,7 @@ func handleIndex(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	model := IndexModel{
 		Context:          r.Context(),
 		ActiveTests:      statsCache.getActiveTests(r.Context()),
+		AddrLDAP:         *flagAddrLDAP,
 		AddrLDAPExternal: *flagAddrLDAPExternal,
 		DNSEnabled:       *flagDNSEnable,
 		DNSZone:          *flagDNSZone,
