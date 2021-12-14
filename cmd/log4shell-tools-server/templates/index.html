@@ -88,16 +88,18 @@
               {{ end }}
             </h2>
             {{ if not (IsTestDone .Test) }}
-              <label for="input-uri-ldap" class="form-label">Copy the texts below and paste them anywhere you suspect it might end up being sent to log4j:</label>
+              <p>Copy the texts below and paste them anywhere you suspect it might end up being sent to log4j:</p>
+              <label for="input-uri-ldap" class="form-label">LDAP</label>
               <div class="mb-3 input-group">
                 <input type="text" class="form-control fw-bold" id="input-uri-ldap" value="${jndi:ldap://{{ .AddrLDAPExternal }}/{{ .Test.ID }}}" readonly>
                 <button class="btn btn-outline-dark" id="button-input-uri-ldap" type="button">Copy</button>
               </div>
               {{ if .DNSEnabled }}
-                <!--<div class="mb-3 input-group">
+                <label for="input-uri-dns" class="form-label">DNS</label>
+                <div class="mb-3 input-group">
                   <input type="text" class="form-control fw-bold" id="input-uri-dns" value="${jndi:dns://{{ .Test.ID }}.{{ .DNSZone }}}" readonly>
                   <button class="btn btn-outline-dark" id="button-input-uri-dns" type="button">Copy</button>
-                </div>-->
+                </div>
               {{ end }}
             {{ end }}
             <div class="alert alert-primary" role="alert">
@@ -260,7 +262,7 @@
         }
 
         registerCopyListener("input-uri-ldap");
-        //registerCopyListener("input-uri-dns");
+        registerCopyListener("input-uri-dns");
       });
     </script>
   </body>

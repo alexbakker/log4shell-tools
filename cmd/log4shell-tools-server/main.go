@@ -112,7 +112,6 @@ func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 			"q":      q.Name,
 			"type":   dns.TypeToString[q.Qtype],
 		})
-		ctxLog.Info("Received DNS query")
 
 		parts := strings.Split(q.Name, ".")
 		id, err := uuid.Parse(parts[0])
@@ -124,7 +123,7 @@ func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 		}
 
 		ctxLog = ctxLog.WithField("test", id)
-		ctxLog.WithField("q", q.Name).Info("Handling DNS query")
+		ctxLog.Info("Handling DNS query")
 		counterDNSQueries.Inc()
 
 		test, err := store.Test(context.Background(), id)
