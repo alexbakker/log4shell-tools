@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	ldap "github.com/alexbakker/ldapserver"
@@ -32,7 +33,7 @@ var (
 	flagDNSZone          = flag.String("dns-zone", "", "DNS zone that is forwarded to the tool's DNS server")
 	flagProto            = flag.String("http-proto", "https", "the HTTP protocol to use for URL's")
 	flagTestTimeout      = flag.Int("test-timeout", 30, "test timeout in minutes")
-	testTimeout          time.Duration
+	testTimeout          = time.Duration(*flagTestTimeout)
 
 	className = "Log4Shell"
 
@@ -40,7 +41,8 @@ var (
 	tmplIndexText string
 	tmplIndex     *template.Template
 
-	store storage.Backend
+	store      storage.Backend
+	statsCache *StatsCache
 )
 
 type IndexModel struct {
@@ -51,6 +53,14 @@ type IndexModel struct {
 	AddrLDAPExternal string
 	DNSEnabled       bool
 	DNSZone          string
+	ActiveTests      int64
+}
+
+type StatsCache struct {
+	store              storage.Backend
+	l                  sync.Mutex
+	activeTests        int64
+	activeTestsFetched time.Time
 }
 
 func init() {
@@ -175,6 +185,7 @@ func main() {
 		log.WithError(err).Fatal("Unable to open storage backend")
 	}
 	defer store.Close()
+	statsCache = &StatsCache{store: store}
 
 	go func() {
 		for {
@@ -237,6 +248,7 @@ func main() {
 func handleIndex(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	model := IndexModel{
 		Context:          r.Context(),
+		ActiveTests:      statsCache.getActiveTests(r.Context()),
 		AddrLDAPExternal: *flagAddrLDAPExternal,
 		DNSEnabled:       *flagDNSEnable,
 		DNSZone:          *flagDNSZone,
@@ -353,4 +365,20 @@ func handleTestPayloadDownload(w http.ResponseWriter, r *http.Request, p httprou
 
 func writeHttpError(w http.ResponseWriter, code int) {
 	http.Error(w, fmt.Sprintf("%d - %s", code, http.StatusText(code)), code)
+}
+
+func (c *StatsCache) getActiveTests(ctx context.Context) int64 {
+	c.l.Lock()
+	defer c.l.Unlock()
+
+	if time.Since(c.activeTestsFetched) > 1*time.Minute {
+		var err error
+		c.activeTests, err = c.store.ActiveTests(ctx, testTimeout)
+		if err != nil {
+			log.WithError(err).Error("Unable to fetch number of active tests")
+		}
+		c.activeTestsFetched = time.Now()
+	}
+
+	return c.activeTests
 }

@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4"
@@ -78,12 +79,19 @@ func (db *DB) InsertTest(ctx context.Context, id uuid.UUID) error {
 }
 
 func (db *DB) InsertTestResult(ctx context.Context, t *Test, resultType string, addr string, ptr *string) error {
-	_, err := db.p.Exec(ctx, "INSERT INTO test_result (test_id, type, addr, ptr) VALUES($1, $2, $3, $4)", t.ID, resultType, addr, ptr)
+	_, err := db.p.Exec(ctx, `
+		INSERT INTO test_result (test_id, type, addr, ptr)
+		VALUES($1, $2, $3, $4)
+	`, t.ID, resultType, addr, ptr)
 	return err
 }
 
 func (db *DB) TestResults(ctx context.Context, t *Test) ([]*TestResult, error) {
-	rows, err := db.p.Query(ctx, "SELECT created, type, addr, ptr FROM test_result WHERE test_id = $1", t.ID)
+	rows, err := db.p.Query(ctx, `
+		SELECT created, type, addr, ptr
+		FROM test_result
+		WHERE test_id = $1
+	`, t.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +111,10 @@ func (db *DB) TestResults(ctx context.Context, t *Test) ([]*TestResult, error) {
 }
 
 func (db *DB) PruneTestResults(ctx context.Context) (int64, error) {
-	res, err := db.p.Exec(ctx, "DELETE FROM test WHERE created < timezone('utc'::text, CURRENT_TIMESTAMP) - '1 day'::interval")
+	res, err := db.p.Exec(ctx, `
+		DELETE FROM test
+		WHERE created < timezone('utc'::text, CURRENT_TIMESTAMP) - '1 day'::interval
+	`)
 	if err != nil {
 		return 0, err
 	}
@@ -112,6 +123,23 @@ func (db *DB) PruneTestResults(ctx context.Context) (int64, error) {
 }
 
 func (db *DB) FinishTest(ctx context.Context, t *Test) error {
-	_, err := db.p.Exec(ctx, "UPDATE test SET finished = timezone('utc'::text, CURRENT_TIMESTAMP) WHERE id = $1", t.ID)
+	_, err := db.p.Exec(ctx, `
+		UPDATE test
+		SET finished = timezone('utc'::text, CURRENT_TIMESTAMP)
+		WHERE id = $1
+	`, t.ID)
 	return err
+}
+
+func (db *DB) ActiveTests(ctx context.Context, timeout time.Duration) (int64, error) {
+	var count int64
+	row := db.p.QueryRow(ctx, `
+		SELECT count(*)
+		FROM test
+		WHERE finished IS NULL
+			AND created > timezone('utc'::text, CURRENT_TIMESTAMP) - ('1 minute'::interval * $1);
+	`, int64(timeout.Minutes()))
+
+	err := row.Scan(&count)
+	return count, err
 }

@@ -23,6 +23,7 @@ type Backend interface {
 	TestResults(ctx context.Context, t *Test) ([]*TestResult, error)
 	PruneTestResults(ctx context.Context) (int64, error)
 	FinishTest(ctx context.Context, t *Test) error
+	ActiveTests(ctx context.Context, timeout time.Duration) (int64, error)
 }
 
 type Test struct {

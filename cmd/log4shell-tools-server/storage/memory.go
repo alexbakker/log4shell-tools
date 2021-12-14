@@ -120,3 +120,17 @@ func (m *Memory) FinishTest(ctx context.Context, t *Test) error {
 	tw.Test.Finished = &now
 	return nil
 }
+
+func (m *Memory) ActiveTests(ctx context.Context, timeout time.Duration) (int64, error) {
+	m.l.Lock()
+	defer m.l.Unlock()
+
+	var count int64
+	for _, tw := range m.tests {
+		if tw.Test.Finished == nil && time.Since(*tw.Test.Created) < timeout {
+			count++
+		}
+	}
+
+	return count, nil
+}
