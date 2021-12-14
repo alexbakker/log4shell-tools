@@ -91,6 +91,7 @@ func (db *DB) TestResults(ctx context.Context, t *Test) ([]*TestResult, error) {
 		SELECT created, type, addr, ptr
 		FROM test_result
 		WHERE test_id = $1
+		ORDER BY created ASC
 	`, t.ID)
 	if err != nil {
 		return nil, err
