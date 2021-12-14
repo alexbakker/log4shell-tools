@@ -40,5 +40,5 @@ func getAddrPtr(ctx context.Context, addr string) (string, *string) {
 		ptr = &names[0]
 	}
 
-	return addr, ptr
+	return host, ptr
 }

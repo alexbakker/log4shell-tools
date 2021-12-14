@@ -8,6 +8,13 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	TestResultDnsQuery   = "recv_dns_query"
+	TestResultLdapBind   = "recv_ldap_bind"
+	TestResultLdapSearch = "recv_ldap_search"
+	TestResultHttpGet    = "recv_http_get"
+)
+
 type Backend interface {
 	Close()
 	Test(ctx context.Context, id uuid.UUID) (*Test, error)
@@ -49,7 +56,7 @@ func (t *Test) TimedOut(d time.Duration) bool {
 }
 
 func (r *TestResult) Color() string {
-	if r.Type != TestResultLdapSearch {
+	if r.Type == TestResultHttpGet {
 		return "danger"
 	}
 

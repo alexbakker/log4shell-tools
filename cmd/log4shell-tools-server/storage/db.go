@@ -10,11 +10,6 @@ import (
 )
 
 const (
-	TestResultLdapBind   = "recv_ldap_bind"
-	TestResultLdapSearch = "recv_ldap_search"
-	TestResultHttpGet    = "recv_http_get"
-	TestResultHttpPost   = "recv_http_post"
-
 	schema = `
 CREATE TABLE IF NOT EXISTS test (
 	id UUID NOT NULL,

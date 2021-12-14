@@ -26,4 +26,8 @@ var (
 		Name: "log4shell_http_payload_requests_total",
 		Help: "The total number of RCE payload requests",
 	})
+	counterDNSQueries = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "log4shell_dns_queries_total",
+		Help: "The total number of DNS queries",
+	})
 )

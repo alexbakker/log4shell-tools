@@ -1,6 +1,6 @@
 # log4shell.tools
 
-__log4shell.tools__ is a tool allows you to run a test to check whether one of
+__log4shell.tools__ is a tool that allows you to run a test to check whether one of
 your applications is affected by a vulnerability in log4j: __CVE-2021-44228__.
 
 This is the code that runs https://log4shell.tools. If you'd like to inspect the
