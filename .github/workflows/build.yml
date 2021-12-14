@@ -1,0 +1,16 @@
+name: build
+on: [pull_request, push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Nix
+        uses: cachix/install-nix-action@5f45af07a1f451c75a4ce84e1514200195a1f279
+        with:
+          nix_path: nixpkgs=channel:nixos-21.11
+      - name: Build server
+        run: |
+          nix build --print-build-logs
+          # tiny smoke test
+          ./result/bin/log4shell-tools-server -h
