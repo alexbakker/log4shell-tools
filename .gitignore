@@ -1,4 +1,4 @@
-target/
 .tmp
 result
+example/target/
 cmd/log4shell-tools-server/log4shell-tools-server
