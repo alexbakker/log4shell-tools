@@ -22,14 +22,14 @@ import (
 
 var (
 	flagStorage          = flag.String("storage", "memory://", "storage connection URI (either memory:// or a postgres:// URI")
-	flagAddrDNS          = flag.String("addr-dns", "127.0.0.1:12346", "listening address for the DNS server")
-	flagAddrLDAP         = flag.String("addr-ldap", "127.0.0.1:12345", "listening address for the LDAP server")
-	flagAddrHTTP         = flag.String("addr-http", "127.0.0.1:8001", "listening address for the HTTP server")
-	flagAddrLDAPExternal = flag.String("addr-ldap-external", "127.0.0.1:12345", "address where the LDAP server can be reached externally")
-	flagAddrHTTPExternal = flag.String("addr-http-external", "127.0.0.1:8001", "address where the HTTP server can be reached externally")
-	flagDNSEnable        = flag.Bool("enable-dns", false, "enable the dns server")
-	flagDNSZone          = flag.String("dns-zone", "", "DNS zone that is forwarded to the tool's DNS server")
-	flagProto            = flag.String("http-proto", "https", "the HTTP protocol to use for URL's")
+	flagDNSEnable        = flag.Bool("dns-enable", false, "enable the DNS server")
+	flagDNSAddr          = flag.String("dns-addr", "127.0.0.1:12346", "listening address for the DNS server")
+	flagDNSZone          = flag.String("dns-zone", "", "DNS zone that is forwarded to the tool's DNS server (example: \"dns.log4shell.tools\")")
+	flagLDAPAddr         = flag.String("ldap-addr", "127.0.0.1:12345", "listening address for the LDAP server")
+	flagLDAPAddrExternal = flag.String("ldap-addr-external", "127.0.0.1:12345", "address where the LDAP server can be reached externally")
+	flagLDAPHTTPProto    = flag.String("ldap-http-proto", "https", "the HTTP protocol to use in the payload URL that the LDAP server responds with")
+	flagHTTPAddr         = flag.String("http-addr", "127.0.0.1:8001", "listening address for the HTTP server")
+	flagHTTPAddrExternal = flag.String("http-addr-external", "127.0.0.1:8001", "address where the HTTP server can be reached externally")
 	flagTestTimeout      = flag.Int("test-timeout", 30, "test timeout in minutes")
 	testTimeout          = time.Duration(*flagTestTimeout)
 
@@ -68,7 +68,7 @@ func init() {
 
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n\n", os.Args[0])
-		fmt.Fprintf(flag.CommandLine.Output(), "This tool only listens on 127.0.0.1 by default. Set the addr-* options to customize for your environment.\n\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "This tool only listens on 127.0.0.1 by default. Pass the flags below to customize for your environment.\n\n")
 		flag.PrintDefaults()
 	}
 
@@ -120,21 +120,21 @@ func main() {
 	ldapServer := NewLDAPServer(store)
 	go func() {
 		log.WithFields(log.Fields{
-			"addr":     *flagAddrLDAP,
-			"addr_ext": *flagAddrLDAPExternal,
+			"addr":     *flagLDAPAddr,
+			"addr_ext": *flagLDAPAddrExternal,
 		}).Info("Starting LDAP server")
 
-		if err := ldapServer.ListenAndServe(*flagAddrLDAP); err != nil {
+		if err := ldapServer.ListenAndServe(*flagLDAPAddr); err != nil {
 			log.WithError(err).Fatal("Unable to run LDAP server")
 		}
 	}()
 
 	if *flagDNSEnable {
-		dnsServer := NewDNSServer(*flagAddrDNS, *flagDNSZone)
+		dnsServer := NewDNSServer(store, *flagDNSAddr, *flagDNSZone)
 
 		go func() {
 			log.WithFields(log.Fields{
-				"addr": *flagAddrDNS,
+				"addr": *flagDNSAddr,
 			}).Info("Starting DNS server")
 
 			if err := dnsServer.ListenAndServe(); err != nil {
@@ -152,11 +152,11 @@ func main() {
 	router.GET(fmt.Sprintf("/api/tests/:uuid/payload/%s.class", className), handleTestPayloadDownload)
 
 	log.WithFields(log.Fields{
-		"addr":     *flagAddrHTTP,
-		"addr_ext": *flagAddrHTTPExternal,
+		"addr":     *flagHTTPAddr,
+		"addr_ext": *flagHTTPAddrExternal,
 	}).Info("Starting HTTP server")
 
-	if err := http.ListenAndServe(*flagAddrHTTP, router); err != nil {
+	if err := http.ListenAndServe(*flagHTTPAddr, router); err != nil {
 		log.WithError(err).Fatal("Unable to start HTTP server")
 	}
 }
@@ -165,8 +165,8 @@ func handleIndex(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	model := IndexModel{
 		Context:          r.Context(),
 		ActiveTests:      statsCache.getActiveTests(r.Context()),
-		AddrLDAP:         *flagAddrLDAP,
-		AddrLDAPExternal: *flagAddrLDAPExternal,
+		AddrLDAP:         *flagLDAPAddr,
+		AddrLDAPExternal: *flagLDAPAddrExternal,
 		DNSEnabled:       *flagDNSEnable,
 		DNSZone:          *flagDNSZone,
 	}

