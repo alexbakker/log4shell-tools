@@ -58,7 +58,7 @@
             {{ if gt .ActiveTests 0 }}
               <span class="fs-6 text-muted">({{ .ActiveTests }} tests currently active)</span>
             {{ end }}
-            <p class="mt-3">This tool allows you to run a test to check whether one of your applications is affected by a vulnerability in log4j: <b>CVE-2021-44228</b>. You must only use this tool on machines that you have permission to test on.</p>
+            <p class="mt-3">This tool allows you to run a test to check whether one of your applications is affected by the recent vulnerabilities in log4j: <b>CVE-2021-44228</b> and <b>CVE-2021-45046</b>. You must only use this tool on machines that you have permission to test on.</p>
             {{ if .Error }}
               <div class="alert alert-danger" role="alert">
                 {{ .Error }}
@@ -188,6 +188,8 @@
             <p>
               If you're using log4j or a product that depends on log4j, you should act on this immediately.
             </p>
+            <h5>Can I use this tool to test for CVE-2021-45046 as well?</h5>
+            <p>Yes.</p>
             <h5>What can I do to protect myself?</h5>
             <p>Please read the official advisory from Apache: <a href="https://logging.apache.org/log4j/2.x/security.html#Fixed_in_Log4j_2.15.0">https://logging.apache.org/log4j/2.x/security.html#Fixed_in_Log4j_2.15.0</a>.</p>
             <h5>What does this tool do?</h5>

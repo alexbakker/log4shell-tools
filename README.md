@@ -1,7 +1,8 @@
 # log4shell.tools [![build](https://github.com/alexbakker/log4shell-tools/actions/workflows/build.yml/badge.svg)](https://github.com/alexbakker/log4shell-tools/actions/workflows/build.yml)
 
-__log4shell.tools__ is a tool that allows you to run a test to check whether one of
-your applications is affected by a vulnerability in log4j: __CVE-2021-44228__.
+__log4shell.tools__ is a tool that allows you to run a test to check whether one
+of your applications is affected by the recent vulnerabilities in log4j:
+__CVE-2021-44228__ and __CVE-2021-45046__.
 
 This is the code that runs https://log4shell.tools. If you'd like to inspect the
 code or run an instance in your own environment, you've come to the right
