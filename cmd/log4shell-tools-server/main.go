@@ -25,6 +25,8 @@ var (
 	flagDNSEnable        = flag.Bool("dns-enable", false, "enable the DNS server")
 	flagDNSAddr          = flag.String("dns-addr", "127.0.0.1:12346", "listening address for the DNS server")
 	flagDNSZone          = flag.String("dns-zone", "", "DNS zone that is forwarded to the tool's DNS server (example: \"dns.log4shell.tools\")")
+	flagDNSA             = flag.String("dns-a", "127.0.0.1", "the IPv4 address to respond with to any A record queries for 'dns-zone'")
+	flagDNSAAAA          = flag.String("dns-aaaa", "::1", "the IPv6 address to respond with to any AAAA record queries for 'dns-zone'")
 	flagLDAPAddr         = flag.String("ldap-addr", "127.0.0.1:12345", "listening address for the LDAP server")
 	flagLDAPAddrExternal = flag.String("ldap-addr-external", "127.0.0.1:12345", "address where the LDAP server can be reached externally")
 	flagLDAPHTTPProto    = flag.String("ldap-http-proto", "https", "the HTTP protocol to use in the payload URL that the LDAP server responds with")
@@ -130,7 +132,12 @@ func main() {
 	}()
 
 	if *flagDNSEnable {
-		dnsServer := NewDNSServer(store, *flagDNSAddr, *flagDNSZone)
+		dnsServer := NewDNSServer(store, DNSServerOpts{
+			Addr: *flagDNSAddr,
+			Zone: *flagDNSZone,
+			A:    *flagDNSA,
+			AAAA: *flagDNSAAAA,
+		})
 
 		go func() {
 			log.WithFields(log.Fields{

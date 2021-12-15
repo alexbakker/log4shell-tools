@@ -15,13 +15,21 @@ type DNSServer struct {
 	s     *dns.Server
 	store storage.Backend
 	zone  string
+	opts  DNSServerOpts
 }
 
-func NewDNSServer(store storage.Backend, addr string, zone string) *DNSServer {
-	s := DNSServer{store: store, zone: zone}
+type DNSServerOpts struct {
+	Addr string
+	Zone string
+	A    string
+	AAAA string
+}
+
+func NewDNSServer(store storage.Backend, opts DNSServerOpts) *DNSServer {
+	s := DNSServer{store: store, opts: opts}
 	mux := dns.NewServeMux()
 	mux.HandleFunc(fmt.Sprintf("%s.", s.zone), s.handleDNSQuery)
-	server := &dns.Server{Addr: addr, Net: "udp", Handler: mux}
+	server := &dns.Server{Addr: opts.Addr, Net: "udp", Handler: mux}
 	s.s = server
 	return &s
 }
@@ -49,7 +57,7 @@ func (s *DNSServer) handleDNSQuery(w dns.ResponseWriter, r *dns.Msg) {
 		}
 
 		if strings.HasPrefix(strings.ToLower(q.Name), s.zone) {
-			s.writeDNSName(m, r, q.Name, q.Qtype)
+			s.writeDNSRes(m, r, q.Name, q.Qtype)
 			w.WriteMsg(m)
 			return
 		}
@@ -101,25 +109,25 @@ func (s *DNSServer) handleDNSQuery(w dns.ResponseWriter, r *dns.Msg) {
 			return
 		}
 
-		s.writeDNSName(m, r, q.Name, q.Qtype)
+		s.writeDNSRes(m, r, q.Name, q.Qtype)
 	}
 
 	w.WriteMsg(m)
 }
 
-func (s *DNSServer) writeDNSName(m *dns.Msg, r *dns.Msg, name string, recordType uint16) {
+func (s *DNSServer) writeDNSRes(m *dns.Msg, r *dns.Msg, name string, recordType uint16) {
 	var record string
 	switch recordType {
 	case dns.TypeA:
-		record = "138.201.187.203"
+		record = s.opts.A
 	case dns.TypeAAAA:
-		record = "2a01:4f8:1c17:d3e2::1"
-	default:
-		panic("unsupported dns record type: " + dns.TypeToString[recordType])
+		record = s.opts.AAAA
 	}
 
-	rr, err := dns.NewRR(fmt.Sprintf("%s %s %s", name, dns.TypeToString[recordType], record))
-	if err == nil {
-		m.Answer = append(m.Answer, rr)
+	if record != "" {
+		rr, err := dns.NewRR(fmt.Sprintf("%s %s %s", name, dns.TypeToString[recordType], record))
+		if err == nil {
+			m.Answer = append(m.Answer, rr)
+		}
 	}
 }
