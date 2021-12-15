@@ -75,7 +75,7 @@ This tool only listens on 127.0.0.1 by default. Pass the flags below to customiz
   -ldap-addr-external string
     	address where the LDAP server can be reached externally (default "127.0.0.1:12345")
   -ldap-http-proto string
-    	the HTTP protocol to use in the payload URL that the LDAP server responds with (default "https")
+    	the HTTP protocol to use in the payload URL that the LDAP server responds with (default "http")
   -storage string
     	storage connection URI (either memory:// or a postgres:// URI (default "memory://")
   -test-timeout int

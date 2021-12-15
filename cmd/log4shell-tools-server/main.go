@@ -29,7 +29,7 @@ var (
 	flagDNSAAAA          = flag.String("dns-aaaa", "::1", "the IPv6 address to respond with to any AAAA record queries for 'dns-zone'")
 	flagLDAPAddr         = flag.String("ldap-addr", "127.0.0.1:12345", "listening address for the LDAP server")
 	flagLDAPAddrExternal = flag.String("ldap-addr-external", "127.0.0.1:12345", "address where the LDAP server can be reached externally")
-	flagLDAPHTTPProto    = flag.String("ldap-http-proto", "https", "the HTTP protocol to use in the payload URL that the LDAP server responds with")
+	flagLDAPHTTPProto    = flag.String("ldap-http-proto", "http", "the HTTP protocol to use in the payload URL that the LDAP server responds with")
 	flagHTTPAddr         = flag.String("http-addr", "127.0.0.1:8001", "listening address for the HTTP server")
 	flagHTTPAddrExternal = flag.String("http-addr-external", "127.0.0.1:8001", "address where the HTTP server can be reached externally")
 	flagTestTimeout      = flag.Int("test-timeout", 30, "test timeout in minutes")
