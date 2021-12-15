@@ -14,7 +14,6 @@ import (
 type DNSServer struct {
 	s     *dns.Server
 	store storage.Backend
-	zone  string
 	opts  DNSServerOpts
 }
 
@@ -28,7 +27,7 @@ type DNSServerOpts struct {
 func NewDNSServer(store storage.Backend, opts DNSServerOpts) *DNSServer {
 	s := DNSServer{store: store, opts: opts}
 	mux := dns.NewServeMux()
-	mux.HandleFunc(fmt.Sprintf("%s.", s.zone), s.handleDNSQuery)
+	mux.HandleFunc(fmt.Sprintf("%s.", opts.Zone), s.handleDNSQuery)
 	server := &dns.Server{Addr: opts.Addr, Net: "udp", Handler: mux}
 	s.s = server
 	return &s
@@ -56,7 +55,7 @@ func (s *DNSServer) handleDNSQuery(w dns.ResponseWriter, r *dns.Msg) {
 			return
 		}
 
-		if strings.HasPrefix(strings.ToLower(q.Name), s.zone) {
+		if strings.HasPrefix(strings.ToLower(q.Name), s.opts.Zone) {
 			s.writeDNSRes(m, r, q.Name, q.Qtype)
 			w.WriteMsg(m)
 			return
