@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Log4Shell Vulnerability Test Tool (CVE-2021-44228)</title>
+    <title>Log4Shell Vulnerability Test Tool</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="This tool allows you to check whether one of your applications is affected by the recent vulnerabilities in log4j: CVE-2021-44228 and CVE-2021-45046">
@@ -311,9 +311,11 @@
         function registerCopyListener(field) {
           let uriInput = document.getElementById(field);
           let copyBtn = document.getElementById(`button-${field}`);
-          copyBtn.addEventListener("click", () => {
-            copyToClipboard(uriInput.value)
-          });
+          if (copyBtn != null) {
+            copyBtn.addEventListener("click", () => {
+              copyToClipboard(uriInput.value)
+            });
+          }
         }
 
         registerCopyListener("input-uri-ldap");
