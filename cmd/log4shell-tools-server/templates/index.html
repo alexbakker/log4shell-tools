@@ -240,6 +240,16 @@
               The only way to make sure you're safe, is to start applying
               patches.
             </p>
+            <h5>Is there any chance that the tool reports a false positive?</h5>
+            <p>
+              The DNS lookup detection feature may result in a false positive in
+              some cases. For example, this can happen if the environment you're
+              testing has some other tooling that is examining the logs or the
+              traffic on the network. If the tooling finds anything suspicious,
+              it may perform a DNS lookup as part of its analysis. This will
+              lead us to believe that we triggered a lookup in log4j, while that
+              was actually not the case.
+            </p>
             <h5>Isn't releasing such a tool to the public dangerous?</h5>
             <p>
               I believe in arming the public with the same tools that the bad
