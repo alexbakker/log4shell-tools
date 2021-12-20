@@ -187,7 +187,7 @@ func handleIndex(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	if idString != "" {
 		var err error
 		if model.UUID, err = uuid.Parse(idString); err != nil {
-			ctxLog.WithError(err).Error("Unable to parse UUID")
+			ctxLog.WithField("id", idString).WithError(err).Error("Unable to parse UUID")
 			writeHttpError(w, http.StatusBadRequest)
 			return
 		}
@@ -247,9 +247,10 @@ func handleTestPayloadDownload(w http.ResponseWriter, r *http.Request, p httprou
 		"req":    r.URL.Path,
 	})
 
-	id, err := uuid.Parse(p.ByName("uuid"))
+	idString := p.ByName("uuid")
+	id, err := uuid.Parse(idString)
 	if err != nil {
-		ctxLog.WithError(err).Error("Unable to parse UUID")
+		ctxLog.WithField("id", idString).WithError(err).Error("Unable to parse UUID")
 		writeHttpError(w, http.StatusBadRequest)
 		return
 	}
