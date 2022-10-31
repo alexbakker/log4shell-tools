@@ -14,7 +14,7 @@
             version = "0.0.0";
             src = ./.;
 
-            vendorSha256 = "sha256-eaS8wseZVYKSx60zP7Z0R3j2IzkfFQU7JhfMDEND+IA=";
+            vendorSha256 = "sha256-WHUP367O70RHZ57zW9dFsa8m1QYvRFR4je971HyfA2E=";
 
             subPackages = [ "./cmd/log4shell-tools-server" ];
           };
