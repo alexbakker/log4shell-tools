@@ -59,6 +59,15 @@
             {{ if gt .ActiveTests 0 }}
               <span class="fs-6 text-muted">({{ .ActiveTests }} tests currently active)</span>
             {{ end }}
+            <div class="alert alert-danger mt-3" role="alert">
+              <b>Is it time to shut down log4shell.tools?</b>
+              It has been 2 years since Log4Shell was discovered and patched.
+              Since this service costs money to run, I'm considering shutting it
+              down. Usage of this service has been decreasing, but it's still
+              being used around ~35 times every day. Is this tool still
+              indispensable to you? Please
+              <a href="mailto:contact@alexbakker.me">let me know</a>.
+            </div>
             <p class="mt-3">
               This tool allows you to run a test to check whether one of your
               applications is affected by the recent vulnerabilities in log4j:
