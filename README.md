@@ -4,7 +4,7 @@ __log4shell.tools__ is a tool that allows you to run a test to check whether one
 of your applications is affected by the recent vulnerabilities in log4j:
 __CVE-2021-44228__ and __CVE-2021-45046__.
 
-This is the code that runs https://log4shell.tools. If you'd like to inspect the
+This is the code that runs https://log4shell.alexbakker.me. If you'd like to inspect the
 code or run an instance in your own environment, you've come to the right
 place.
 
@@ -90,5 +90,5 @@ results to persist across restarts, you may want to use the Postgres backend ins
 #### DNS
 
 The DNS server is disabled by default, because its configuration options are
-currently very specific to the setup over at https://log4shell.tools. Let me
+currently very specific to the setup over at https://log4shell.alexbakker.me. Let me
 know if you'd like to help make these more generic.
