@@ -59,15 +59,16 @@
             {{ if gt .ActiveTests 0 }}
               <span class="fs-6 text-muted">({{ .ActiveTests }} tests currently active)</span>
             {{ end }}
-            <div class="alert alert-danger mt-3" role="alert">
-              <b>Is it time to shut down log4shell.tools?</b>
-              It has been 2 years since Log4Shell was discovered and patched.
-              Since this service costs money to run, I'm considering shutting it
-              down. Usage of this service has been decreasing, but it's still
-              being used around ~35 times every day. Is this tool still
-              indispensable to you? Please
-              <a href="mailto:contact@alexbakker.me">let me know</a>.
-            </div>
+            {{ if .Discontinued }}
+              <div class="alert alert-danger mt-3" role="alert">
+                <b>2023-12-20: Discontinued</b>
+                <div>
+                  This service has been discontinued. If you still depend on it,
+                  consider self-hosting: <a
+                  href="https://github.com/alexbakker/log4shell-tools">https://github.com/alexbakker/log4shell-tools</a>.
+                </div>
+              </div>
+            {{ end }}
             <p class="mt-3">
               This tool allows you to run a test to check whether one of your
               applications is affected by the recent vulnerabilities in log4j:
@@ -100,7 +101,7 @@
                   I'm testing a device that I personally own, or a device for which I have permission from the owner to run this test
                 </label>
               </div>
-              <input class="btn btn-primary" type="submit" value="Start" {{ if .Test }}disabled{{ end }}>
+              <input class="btn btn-primary" type="submit" value="Start" {{ if or .Test .Discontinued }}disabled{{ end }}>
             </form>
           </div>
         </div>

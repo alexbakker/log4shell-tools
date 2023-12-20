@@ -33,6 +33,7 @@ var (
 	flagHTTPAddr         = flag.String("http-addr", "127.0.0.1:8001", "listening address for the HTTP server")
 	flagHTTPAddrExternal = flag.String("http-addr-external", "127.0.0.1:8001", "address where the HTTP server can be reached externally")
 	flagTestTimeout      = flag.Int("test-timeout", 30, "test timeout in minutes")
+	flagDiscontinued     = flag.Bool("discontinued", false, "whether this service has been discontinued")
 	testTimeout          = time.Duration(*flagTestTimeout)
 
 	className = "Log4Shell"
@@ -56,6 +57,7 @@ type IndexModel struct {
 	DNSZone          string
 	ActiveTests      int64
 	Error            string
+	Discontinued     bool
 }
 
 type StatsCache struct {
@@ -97,66 +99,72 @@ func main() {
 	flag.Parse()
 	testTimeout = time.Minute * time.Duration(*flagTestTimeout)
 
-	log.WithField("uri", *flagStorage).Info("Opening storage backend")
-	var err error
-	store, err = storage.NewBackend(*flagStorage)
-	if err != nil {
-		log.WithError(err).Fatal("Unable to open storage backend")
-	}
-	defer store.Close()
-	statsCache = &StatsCache{store: store}
-
-	go func() {
-		for {
-			<-time.After(1 * time.Minute)
-
-			deleted, err := store.PruneTestResults(context.Background())
-			if err != nil {
-				log.WithError(err).Error("Unable to delete old test results")
-			} else {
-				log.WithField("count", deleted).Info("Deleted old test results")
-			}
+	if !*flagDiscontinued {
+		log.WithField("uri", *flagStorage).Info("Opening storage backend")
+		var err error
+		store, err = storage.NewBackend(*flagStorage)
+		if err != nil {
+			log.WithError(err).Fatal("Unable to open storage backend")
 		}
-	}()
-
-	ldapServer := NewLDAPServer(store)
-	go func() {
-		log.WithFields(log.Fields{
-			"addr":     *flagLDAPAddr,
-			"addr_ext": *flagLDAPAddrExternal,
-		}).Info("Starting LDAP server")
-
-		if err := ldapServer.ListenAndServe(*flagLDAPAddr); err != nil {
-			log.WithError(err).Fatal("Unable to run LDAP server")
-		}
-	}()
-
-	if *flagDNSEnable {
-		dnsServer := NewDNSServer(store, DNSServerOpts{
-			Addr: *flagDNSAddr,
-			Zone: *flagDNSZone,
-			A:    *flagDNSA,
-			AAAA: *flagDNSAAAA,
-		})
+		defer store.Close()
+		statsCache = &StatsCache{store: store}
 
 		go func() {
-			log.WithFields(log.Fields{
-				"addr": *flagDNSAddr,
-			}).Info("Starting DNS server")
+			for {
+				<-time.After(1 * time.Minute)
 
-			if err := dnsServer.ListenAndServe(); err != nil {
-				log.WithError(err).Fatal("Unable to run DNS server")
+				deleted, err := store.PruneTestResults(context.Background())
+				if err != nil {
+					log.WithError(err).Error("Unable to delete old test results")
+				} else {
+					log.WithField("count", deleted).Info("Deleted old test results")
+				}
 			}
 		}()
+
+		ldapServer := NewLDAPServer(store)
+		go func() {
+			log.WithFields(log.Fields{
+				"addr":     *flagLDAPAddr,
+				"addr_ext": *flagLDAPAddrExternal,
+			}).Info("Starting LDAP server")
+
+			if err := ldapServer.ListenAndServe(*flagLDAPAddr); err != nil {
+				log.WithError(err).Fatal("Unable to run LDAP server")
+			}
+		}()
+
+		if *flagDNSEnable {
+			dnsServer := NewDNSServer(store, DNSServerOpts{
+				Addr: *flagDNSAddr,
+				Zone: *flagDNSZone,
+				A:    *flagDNSA,
+				AAAA: *flagDNSAAAA,
+			})
+
+			go func() {
+				log.WithFields(log.Fields{
+					"addr": *flagDNSAddr,
+				}).Info("Starting DNS server")
+
+				if err := dnsServer.ListenAndServe(); err != nil {
+					log.WithError(err).Fatal("Unable to run DNS server")
+				}
+			}()
+		}
+	} else {
+		log.Warn("Running in discontinued mode")
 	}
 
-	promHandler := promhttp.Handler()
 	router := httprouter.New()
 	router.GET("/", handleIndex)
-	router.GET("/metrics", func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		promHandler.ServeHTTP(w, r)
-	})
-	router.GET(fmt.Sprintf("/api/tests/:uuid/payload/%s.class", className), handleTestPayloadDownload)
+	if !*flagDiscontinued {
+		promHandler := promhttp.Handler()
+		router.GET("/metrics", func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+			promHandler.ServeHTTP(w, r)
+		})
+		router.GET(fmt.Sprintf("/api/tests/:uuid/payload/%s.class", className), handleTestPayloadDownload)
+	}
 
 	log.WithFields(log.Fields{
 		"addr":     *flagHTTPAddr,
@@ -169,13 +177,18 @@ func main() {
 }
 
 func handleIndex(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	var activeTests int64
+	if !*flagDiscontinued {
+		activeTests = statsCache.getActiveTests(r.Context())
+	}
 	model := IndexModel{
 		Context:          r.Context(),
-		ActiveTests:      statsCache.getActiveTests(r.Context()),
+		ActiveTests:      activeTests,
 		AddrLDAP:         *flagLDAPAddr,
 		AddrLDAPExternal: *flagLDAPAddrExternal,
 		DNSEnabled:       *flagDNSEnable,
 		DNSZone:          *flagDNSZone,
+		Discontinued:     *flagDiscontinued,
 	}
 	ctxLog := log.WithFields(log.Fields{
 		"server": "http",
@@ -183,50 +196,54 @@ func handleIndex(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		"req":    r.URL.Path,
 	})
 
-	idString := r.URL.Query().Get("uuid")
-	if idString != "" {
-		var err error
-		if model.UUID, err = uuid.Parse(idString); err != nil {
-			ctxLog.WithField("id", idString).WithError(err).Error("Unable to parse UUID")
-			writeHttpError(w, http.StatusBadRequest)
-			return
-		}
-		ctxLog = ctxLog.WithField("test", model.UUID)
-
-		model.Test, err = store.Test(r.Context(), model.UUID)
-		if err != nil {
-			ctxLog.WithError(err).Error("Unable to lookup test in storage")
-			writeHttpError(w, http.StatusInternalServerError)
-			return
-		}
-		if model.Test == nil {
-			if r.URL.Query().Get("terms") != "y" {
-				model.Error = "You cannot continue before agreeing to only testing on machines that you have permission to test on."
-			} else {
-				ctxLog.Info("Inserting new test")
-
-				if err := store.InsertTest(r.Context(), model.UUID); err != nil {
-					ctxLog.WithError(err).Error("Unable to insert new test")
-					writeHttpError(w, http.StatusInternalServerError)
-					return
-				}
-				if model.Test, err = store.Test(r.Context(), model.UUID); err != nil {
-					ctxLog.WithError(err).Error("Unable to lookup test in storage")
-					writeHttpError(w, http.StatusInternalServerError)
-					return
-				}
-				if model.Test == nil {
-					ctxLog.Error("Unable to obtain test right after insert")
-					writeHttpError(w, http.StatusInternalServerError)
-					return
-				}
-
-				counterTestsCreated.Inc()
+	if !*flagDiscontinued {
+		idString := r.URL.Query().Get("uuid")
+		if idString != "" {
+			var err error
+			if model.UUID, err = uuid.Parse(idString); err != nil {
+				ctxLog.WithField("id", idString).WithError(err).Error("Unable to parse UUID")
+				writeHttpError(w, http.StatusBadRequest)
+				return
 			}
+			ctxLog = ctxLog.WithField("test", model.UUID)
+
+			model.Test, err = store.Test(r.Context(), model.UUID)
+			if err != nil {
+				ctxLog.WithError(err).Error("Unable to lookup test in storage")
+				writeHttpError(w, http.StatusInternalServerError)
+				return
+			}
+			if model.Test == nil {
+				if r.URL.Query().Get("terms") != "y" {
+					model.Error = "You cannot continue before agreeing to only testing on machines that you have permission to test on."
+				} else {
+					ctxLog.Info("Inserting new test")
+
+					if err := store.InsertTest(r.Context(), model.UUID); err != nil {
+						ctxLog.WithError(err).Error("Unable to insert new test")
+						writeHttpError(w, http.StatusInternalServerError)
+						return
+					}
+					if model.Test, err = store.Test(r.Context(), model.UUID); err != nil {
+						ctxLog.WithError(err).Error("Unable to lookup test in storage")
+						writeHttpError(w, http.StatusInternalServerError)
+						return
+					}
+					if model.Test == nil {
+						ctxLog.Error("Unable to obtain test right after insert")
+						writeHttpError(w, http.StatusInternalServerError)
+						return
+					}
+
+					counterTestsCreated.Inc()
+				}
+			}
+		} else {
+			model.New = true
+			model.UUID = uuid.New()
 		}
 	} else {
 		model.New = true
-		model.UUID = uuid.New()
 	}
 
 	var buf bytes.Buffer
