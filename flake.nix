@@ -10,11 +10,10 @@
       in {
         defaultPackage =
           with pkgs; buildGoModule {
-            pname = "log4shell-tools";
-            version = "0.0.0";
+            name = "log4shell-tools";
             src = ./.;
 
-            vendorSha256 = "sha256-TjtI04iYvpist+BH7Abrpru5cs0kmC0VJlX1HBT/tjw=";
+            vendorHash = "sha256-TjtI04iYvpist+BH7Abrpru5cs0kmC0VJlX1HBT/tjw=";
 
             subPackages = [ "./cmd/log4shell-tools-server" ];
           };
